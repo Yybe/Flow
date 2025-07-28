@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'screens/home_navigation.dart';
 import 'providers/habit_provider.dart';
 import 'providers/task_provider.dart';
+import 'providers/journal_provider.dart';
 import 'models/habit.dart';
 
 void main() {
@@ -19,6 +20,7 @@ class ProductivityApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => HabitProvider()),
         ChangeNotifierProvider(create: (_) => TaskProvider()),
+        ChangeNotifierProvider(create: (_) => JournalProvider()),
       ],
       child: MaterialApp(
         title: 'Productivity App',
@@ -49,17 +51,27 @@ class _AppInitializerState extends State<AppInitializer> {
   Future<void> _initializeApp() async {
     final habitProvider = Provider.of<HabitProvider>(context, listen: false);
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+    final journalProvider = Provider.of<JournalProvider>(context, listen: false);
 
     await Future.wait([
       habitProvider.initialize(),
       taskProvider.initialize(),
+      journalProvider.initialize(),
     ]);
 
     // Add default data if empty (for demo purposes)
     if (habitProvider.habits.isEmpty) {
+      await habitProvider.addHabit('Daily Journaling', HabitType.yesNo);
       await habitProvider.addHabit('Exercise', HabitType.yesNo);
       await habitProvider.addHabit('Read 50 pages', HabitType.measurable, unit: 'pages');
       await habitProvider.addHabit('Meditate', HabitType.yesNo);
+    } else {
+      // Ensure journal habit exists
+      final hasJournalHabit = habitProvider.habits
+          .any((habit) => habit.title.toLowerCase().contains('journal'));
+      if (!hasJournalHabit) {
+        await habitProvider.addHabit('Daily Journaling', HabitType.yesNo);
+      }
     }
 
     if (taskProvider.tasks.isEmpty) {
@@ -70,9 +82,9 @@ class _AppInitializerState extends State<AppInitializer> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<HabitProvider, TaskProvider>(
-      builder: (context, habitProvider, taskProvider, child) {
-        if (habitProvider.isLoading || taskProvider.isLoading) {
+    return Consumer3<HabitProvider, TaskProvider, JournalProvider>(
+      builder: (context, habitProvider, taskProvider, journalProvider, child) {
+        if (habitProvider.isLoading || taskProvider.isLoading || journalProvider.isLoading) {
           return const Scaffold(
             body: Center(
               child: CircularProgressIndicator(),

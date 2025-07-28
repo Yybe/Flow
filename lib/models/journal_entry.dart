@@ -1,11 +1,52 @@
 import 'package:uuid/uuid.dart';
 
+enum Mood {
+  veryHappy,
+  happy,
+  neutral,
+  sad,
+  verySad
+}
+
+extension MoodExtension on Mood {
+  String get emoji {
+    switch (this) {
+      case Mood.veryHappy:
+        return '😄';
+      case Mood.happy:
+        return '😊';
+      case Mood.neutral:
+        return '😐';
+      case Mood.sad:
+        return '😔';
+      case Mood.verySad:
+        return '😢';
+    }
+  }
+
+  String get label {
+    switch (this) {
+      case Mood.veryHappy:
+        return 'Very Happy';
+      case Mood.happy:
+        return 'Happy';
+      case Mood.neutral:
+        return 'Neutral';
+      case Mood.sad:
+        return 'Sad';
+      case Mood.verySad:
+        return 'Very Sad';
+    }
+  }
+}
+
 class JournalEntry {
   final String id;
   final String content;
   final DateTime createdAt;
   final DateTime? updatedAt;
   final int wordCount;
+  final Mood? mood;
 
   JournalEntry({
     String? id,
@@ -13,6 +54,7 @@ class JournalEntry {
     DateTime? createdAt,
     this.updatedAt,
     int? wordCount,
+    this.mood,
   })  : id = id ?? const Uuid().v4(),
         createdAt = createdAt ?? DateTime.now(),
         wordCount = wordCount ?? _calculateWordCount(content);
@@ -28,6 +70,7 @@ class JournalEntry {
     DateTime? createdAt,
     DateTime? updatedAt,
     int? wordCount,
+    Mood? mood,
   }) {
     return JournalEntry(
       id: id ?? this.id,
@@ -35,6 +78,7 @@ class JournalEntry {
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       wordCount: wordCount ?? this.wordCount,
+      mood: mood ?? this.mood,
     );
   }
 
@@ -73,6 +117,7 @@ class JournalEntry {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt?.toIso8601String(),
       'wordCount': wordCount,
+      'mood': mood?.name,
     };
   }
 
@@ -81,10 +126,13 @@ class JournalEntry {
       id: json['id'],
       content: json['content'],
       createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: json['updatedAt'] != null 
-          ? DateTime.parse(json['updatedAt']) 
+      updatedAt: json['updatedAt'] != null
+          ? DateTime.parse(json['updatedAt'])
           : null,
       wordCount: json['wordCount'],
+      mood: json['mood'] != null
+          ? Mood.values.firstWhere((e) => e.name == json['mood'])
+          : null,
     );
   }
 }

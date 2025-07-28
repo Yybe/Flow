@@ -8,8 +8,31 @@ class TaskProvider extends ChangeNotifier {
   bool _isLoading = false;
 
   List<Task> get tasks => _tasks;
-  List<Task> get routineTasks => _tasks.where((task) => task.type == TaskType.routine).toList();
-  List<Task> get dailyTasks => _tasks.where((task) => task.type == TaskType.daily).toList();
+
+  List<Task> get routineTasks {
+    final routine = _tasks.where((task) => task.type == TaskType.routine).toList();
+    // Sort: incomplete tasks first, then completed tasks
+    routine.sort((a, b) {
+      if (a.isCompleted == b.isCompleted) {
+        return a.createdAt.compareTo(b.createdAt); // Keep original order for same completion status
+      }
+      return a.isCompleted ? 1 : -1; // Incomplete tasks first
+    });
+    return routine;
+  }
+
+  List<Task> get dailyTasks {
+    final daily = _tasks.where((task) => task.type == TaskType.daily).toList();
+    // Sort: incomplete tasks first, then completed tasks
+    daily.sort((a, b) {
+      if (a.isCompleted == b.isCompleted) {
+        return a.createdAt.compareTo(b.createdAt); // Keep original order for same completion status
+      }
+      return a.isCompleted ? 1 : -1; // Incomplete tasks first
+    });
+    return daily;
+  }
+
   bool get isLoading => _isLoading;
 
   // Get progress for routine tasks (0.0 to 1.0)
@@ -66,6 +89,14 @@ class TaskProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  // BRAINDUMP INTEGRATION: Add a task created from braindump processing
+  // This method accepts a fully formed Task object from the braindump system
+  Future<void> addTaskFromBraindump(Task task) async {
+    _tasks.add(task);
+    await _saveTasks();
+    notifyListeners();
+  }
+
   // Remove a task
   Future<void> removeTask(String taskId) async {
     _tasks.removeWhere((task) => task.id == taskId);
@@ -80,7 +111,7 @@ class TaskProvider extends ChangeNotifier {
 
     final task = _tasks[taskIndex];
     final now = DateTime.now();
-    
+
     if (task.isCompleted) {
       // Mark as incomplete
       _tasks[taskIndex] = task.copyWith(
@@ -94,7 +125,43 @@ class TaskProvider extends ChangeNotifier {
         completedAt: now,
       );
     }
-    
+
+    await _saveTasks();
+    notifyListeners();
+  }
+
+  // Toggle completion of a specific list item within a task
+  Future<void> toggleListItemCompletion(String taskId, String listItemId) async {
+    final taskIndex = _tasks.indexWhere((task) => task.id == taskId);
+    if (taskIndex == -1) return;
+
+    final task = _tasks[taskIndex];
+    final updatedListItems = task.listItems.map((item) {
+      if (item.id == listItemId) {
+        return item.copyWith(isCompleted: !item.isCompleted);
+      }
+      return item;
+    }).toList();
+
+    _tasks[taskIndex] = task.copyWith(listItems: updatedListItems);
+
+    await _saveTasks();
+    notifyListeners();
+  }
+
+  // Delete a task
+  Future<void> deleteTask(String taskId) async {
+    _tasks.removeWhere((task) => task.id == taskId);
+    await _saveTasks();
+    notifyListeners();
+  }
+
+  // Update an existing task
+  Future<void> updateTask(Task updatedTask) async {
+    final taskIndex = _tasks.indexWhere((task) => task.id == updatedTask.id);
+    if (taskIndex == -1) return;
+
+    _tasks[taskIndex] = updatedTask;
     await _saveTasks();
     notifyListeners();
   }
@@ -120,7 +187,7 @@ class TaskProvider extends ChangeNotifier {
   // Add some default daily tasks (for demo)
   Future<void> addDefaultDailyTasks() async {
     if (dailyTasks.isNotEmpty) return; // Don't add if already exist
-    
+
     await addTask('Buy groceries', TaskType.daily);
     await addTask('Call mom', TaskType.daily);
     await addTask('Email boss', TaskType.daily);

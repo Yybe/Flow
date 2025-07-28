@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../models/task.dart';
 import '../providers/task_provider.dart';
 import '../theme/app_theme.dart';
+import 'braindump_dialog.dart'; // BRAINDUMP INTEGRATION: AI-powered task creation
 
 class EnhancedTaskDialog extends StatefulWidget {
   final TaskType taskType;
@@ -103,18 +104,11 @@ class _EnhancedTaskDialogState extends State<EnhancedTaskDialog> {
                         Expanded(
                           child: _OptionCard(
                             title: 'Braindump with AI',
-                            subtitle: 'Coming soon!',
+                            subtitle: 'Natural language input',
                             icon: Icons.psychology,
                             isSelected: _selectedOption == 1,
-                            isEnabled: false,
-                            onTap: () {
-                              // TODO: Implement AI braindump feature
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('AI braindump feature coming soon!'),
-                                ),
-                              );
-                            },
+                            isEnabled: true, // BRAINDUMP INTEGRATION: Re-enabled
+                            onTap: () => setState(() => _selectedOption = 1),
                           ),
                         ),
                       ],
@@ -123,6 +117,12 @@ class _EnhancedTaskDialogState extends State<EnhancedTaskDialog> {
                     if (_selectedOption == 0) ...[
                       const SizedBox(height: 24),
                       _buildCustomTaskForm(),
+                    ],
+
+                    // BRAINDUMP INTEGRATION: AI-powered task creation interface
+                    if (_selectedOption == 1) ...[
+                      const SizedBox(height: 24),
+                      _buildBraindumpInterface(),
                     ],
                   ],
                 ),
@@ -262,36 +262,131 @@ class _EnhancedTaskDialogState extends State<EnhancedTaskDialog> {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: _colorOptions.map((colorOption) {
-            final isSelected = _selectedColor == colorOption['color'];
-            return GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selectedColor = colorOption['color'];
-                });
-              },
-              child: Container(
-                width: 40,
-                height: 40,
-                decoration: BoxDecoration(
-                  color: colorOption['displayColor'],
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(
-                    color: isSelected ? AppColors.teal : Colors.grey[300]!,
-                    width: isSelected ? 3 : 1,
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: _colorOptions.map((colorOption) {
+              final isSelected = _selectedColor == colorOption['color'];
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      _selectedColor = colorOption['color'];
+                    });
+                  },
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: colorOption['displayColor'],
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: isSelected ? AppColors.teal : Colors.grey[300]!,
+                        width: isSelected ? 2 : 1,
+                      ),
+                    ),
+                    child: isSelected
+                        ? const Icon(Icons.check, color: AppColors.teal, size: 18)
+                        : null,
                   ),
                 ),
-                child: isSelected
-                    ? const Icon(Icons.check, color: AppColors.teal, size: 20)
-                    : null,
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
+    );
+  }
+
+  // BRAINDUMP INTEGRATION: Interface for AI-powered task creation
+  Widget _buildBraindumpInterface() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.blue[50],
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: Colors.blue[200]!),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(Icons.psychology, color: Colors.blue[700], size: 24),
+                  const SizedBox(width: 8),
+                  Text(
+                    'AI Braindump',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blue[700],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Dump your thoughts in natural language and let AI organize them into structured tasks.',
+                style: TextStyle(
+                  color: Colors.blue[600],
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Example: "buy milk, call mom at 3pm, clean room, dentist appointment tomorrow"',
+                style: TextStyle(
+                  color: Colors.blue[500],
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        ElevatedButton.icon(
+          onPressed: () => _openBraindumpDialog(),
+          icon: const Icon(Icons.psychology),
+          label: const Text('Start AI Braindump'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.blue,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // BRAINDUMP INTEGRATION: Open the braindump dialog
+  void _openBraindumpDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => BraindumpDialog(
+        onTasksCreated: (tasks) {
+          // Add the generated tasks to the task provider
+          final taskProvider = Provider.of<TaskProvider>(context, listen: false);
+          for (final task in tasks) {
+            taskProvider.addTaskFromBraindump(task);
+          }
+
+          // Close the main dialog
+          Navigator.of(context).pop();
+
+          // Show success message
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Added ${tasks.length} task${tasks.length == 1 ? '' : 's'} from braindump'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        },
+      ),
     );
   }
 

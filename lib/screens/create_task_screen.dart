@@ -6,10 +6,12 @@ import '../theme/app_theme.dart';
 
 class CreateTaskScreen extends StatefulWidget {
   final TaskType taskType;
+  final Task? existingTask;
 
   const CreateTaskScreen({
     super.key,
     required this.taskType,
+    this.existingTask,
   });
 
   @override
@@ -17,7 +19,7 @@ class CreateTaskScreen extends StatefulWidget {
 }
 
 class _CreateTaskScreenState extends State<CreateTaskScreen> {
-  int _selectedOption = 0; // 0 = Custom, 1 = Braindump with AI
+
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
   final TextEditingController _timeController = TextEditingController();
@@ -38,24 +40,45 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+
+    // Initialize form with existing task data if editing
+    if (widget.existingTask != null) {
+      final task = widget.existingTask!;
+      _titleController.text = task.title;
+      _descriptionController.text = task.description ?? '';
+      _timeController.text = task.timeSlot ?? '';
+      _tagsController.text = task.tags.join(', ');
+      _selectedColor = task.backgroundColor;
+
+      // Convert deadline DateTime to TimeOfDay
+      if (task.deadline != null) {
+        _selectedDeadline = TimeOfDay.fromDateTime(task.deadline!);
+      }
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.beige,
       appBar: AppBar(
-        title: Text('Add ${widget.taskType == TaskType.routine ? 'Routine' : 'Daily'} Task'),
+        title: Text(widget.existingTask != null
+            ? 'Edit Task'
+            : 'Add ${widget.taskType == TaskType.routine ? 'Routine' : 'Daily'} Task'),
         backgroundColor: AppColors.lightBeige,
         elevation: 0,
         actions: [
-          if (_selectedOption == 0)
-            TextButton(
-              onPressed: _createTask,
-              child: const Text(
-                'SAVE',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                ),
+          TextButton(
+            onPressed: _saveTask,
+            child: const Text(
+              'SAVE',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
               ),
             ),
+          ),
         ],
       ),
       body: SingleChildScrollView(
@@ -72,41 +95,8 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
             ),
             const SizedBox(height: 16),
             
-            Row(
-              children: [
-                Expanded(
-                  child: _OptionCard(
-                    title: 'Custom Task',
-                    subtitle: 'Create with full customization',
-                    icon: Icons.tune,
-                    isSelected: _selectedOption == 0,
-                    onTap: () => setState(() => _selectedOption = 0),
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: _OptionCard(
-                    title: 'Braindump with AI',
-                    subtitle: 'Coming soon!',
-                    icon: Icons.psychology,
-                    isSelected: _selectedOption == 1,
-                    isEnabled: false,
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('AI braindump feature coming soon!'),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-
-            if (_selectedOption == 0) ...[
-              const SizedBox(height: 32),
-              _buildCustomTaskForm(),
-            ],
+            const SizedBox(height: 24),
+            _buildCustomTaskForm(),
           ],
         ),
       ),
@@ -248,50 +238,51 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         const SizedBox(height: 24),
         
         // Color selection
-        Text(
-          'Background Color',
-          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-        const SizedBox(height: 12),
-        
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: _colorOptions.map((colorOption) {
-              final isSelected = _selectedColor == colorOption['color'];
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedColor = colorOption['color'];
-                  });
-                },
-                child: Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: colorOption['displayColor'],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(
-                      color: isSelected ? AppColors.teal : Colors.grey[300]!,
-                      width: isSelected ? 3 : 1,
-                    ),
-                  ),
-                  child: isSelected
-                      ? const Icon(Icons.check, color: AppColors.teal, size: 24)
-                      : null,
+        Row(
+          children: [
+            Text(
+              'Background Color:',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: _colorOptions.map((colorOption) {
+                    final isSelected = _selectedColor == colorOption['color'];
+                    return Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedColor = colorOption['color'];
+                          });
+                        },
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            color: colorOption['displayColor'],
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(
+                              color: isSelected ? AppColors.teal : Colors.grey[300]!,
+                              width: isSelected ? 2 : 1,
+                            ),
+                          ),
+                          child: isSelected
+                              ? const Icon(Icons.check, color: AppColors.teal, size: 18)
+                              : null,
+                        ),
+                      ),
+                    );
+                  }).toList(),
                 ),
-              );
-            }).toList(),
-          ),
+              ),
+            ),
+          ],
         ),
 
         const SizedBox(height: 32),
@@ -299,7 +290,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
     );
   }
 
-  void _createTask() {
+  void _saveTask() {
     if (_titleController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Please enter a task title')),
@@ -314,7 +305,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         .toList();
 
     final taskProvider = Provider.of<TaskProvider>(context, listen: false);
-    
+
     // Convert TimeOfDay to DateTime for deadline
     DateTime? deadline;
     if (_selectedDeadline != null) {
@@ -327,20 +318,39 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         _selectedDeadline!.minute,
       );
     }
-    
-    taskProvider.addTask(
-      _titleController.text.trim(),
-      widget.taskType,
-      description: _descriptionController.text.trim().isEmpty 
-          ? null 
-          : _descriptionController.text.trim(),
-      timeSlot: _timeController.text.trim().isEmpty 
-          ? null 
-          : _timeController.text.trim(),
-      deadline: deadline,
-      tags: tags.isEmpty ? null : tags,
-      backgroundColor: _selectedColor,
-    );
+
+    if (widget.existingTask != null) {
+      // Update existing task
+      final updatedTask = widget.existingTask!.copyWith(
+        title: _titleController.text.trim(),
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        timeSlot: _timeController.text.trim().isEmpty
+            ? null
+            : _timeController.text.trim(),
+        deadline: deadline,
+        tags: tags.isEmpty ? [] : tags,
+        backgroundColor: _selectedColor,
+      );
+
+      taskProvider.updateTask(updatedTask);
+    } else {
+      // Create new task
+      taskProvider.addTask(
+        _titleController.text.trim(),
+        widget.taskType,
+        description: _descriptionController.text.trim().isEmpty
+            ? null
+            : _descriptionController.text.trim(),
+        timeSlot: _timeController.text.trim().isEmpty
+            ? null
+            : _timeController.text.trim(),
+        deadline: deadline,
+        tags: tags.isEmpty ? null : tags,
+        backgroundColor: _selectedColor,
+      );
+    }
 
     Navigator.pop(context);
   }
@@ -355,66 +365,4 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   }
 }
 
-class _OptionCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final bool isSelected;
-  final bool isEnabled;
-  final VoidCallback onTap;
 
-  const _OptionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.isSelected,
-    this.isEnabled = true,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: isEnabled ? onTap : null,
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.teal.withValues(alpha: 0.1) : Colors.white,
-          border: Border.all(
-            color: isSelected ? AppColors.teal : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
-          ),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Icon(
-              icon,
-              size: 32,
-              color: isEnabled
-                  ? (isSelected ? AppColors.teal : Colors.grey[600])
-                  : Colors.grey[400],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: isEnabled ? null : Colors.grey[400],
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: isEnabled ? Colors.grey[600] : Colors.grey[400],
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

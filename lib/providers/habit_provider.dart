@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import '../models/habit.dart';
+import '../models/journal_entry.dart';
 
 class HabitProvider extends ChangeNotifier {
   List<Habit> _habits = [];
@@ -49,7 +50,7 @@ class HabitProvider extends ChangeNotifier {
 
     final habit = _habits[habitIndex];
     final today = DateTime.now();
-    
+
     if (habit.isCompletedOnDate(today)) {
       // Mark as incomplete
       _habits[habitIndex] = habit.markIncomplete(today);
@@ -57,7 +58,31 @@ class HabitProvider extends ChangeNotifier {
       // Mark as complete
       _habits[habitIndex] = habit.markCompleted(today, value: value);
     }
-    
+
+    await _saveHabits();
+    notifyListeners();
+  }
+
+  // Mark habit complete with mood (for journal habit)
+  Future<void> markHabitComplete(String habitId, String dateKey, bool isComplete, {double? value, Mood? mood}) async {
+    final habitIndex = _habits.indexWhere((habit) => habit.id == habitId);
+    if (habitIndex == -1) return;
+
+    final habit = _habits[habitIndex];
+    final completions = Map<String, dynamic>.from(habit.completions);
+
+    if (isComplete) {
+      completions[dateKey] = {
+        'completed': true,
+        'value': value,
+        'mood': mood?.name,
+        'timestamp': DateTime.now().toIso8601String(),
+      };
+    } else {
+      completions.remove(dateKey);
+    }
+
+    _habits[habitIndex] = habit.copyWith(completions: completions);
     await _saveHabits();
     notifyListeners();
   }
@@ -93,7 +118,7 @@ class HabitProvider extends ChangeNotifier {
   }
 
   // Mark habit as complete for a specific date
-  Future<void> markHabitComplete(String habitId, DateTime date, {double? value}) async {
+  Future<void> markHabitCompleteForDate(String habitId, DateTime date, {double? value}) async {
     final habitIndex = _habits.indexWhere((habit) => habit.id == habitId);
     if (habitIndex == -1) return;
 

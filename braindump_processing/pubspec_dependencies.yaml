@@ -1,0 +1,39 @@
+# Dependencies required for Brain Dump Processing
+# Add these to your pubspec.yaml file
+
+dependencies:
+  flutter:
+    sdk: flutter
+  
+  # Core dependencies for brain dump processing
+  http: ^1.1.0      # For AI API calls to Gemini
+  uuid: ^4.2.1      # For generating unique note IDs
+  
+  # Optional but recommended
+  flutter/foundation.dart  # Already included in Flutter SDK (for kDebugMode)
+
+# No additional dev_dependencies required for core functionality
+
+# Example complete pubspec.yaml:
+# 
+# name: your_app_name
+# description: Your app description
+# version: 1.0.0+1
+# 
+# environment:
+#   sdk: ">=2.17.1 <3.0.0"
+# 
+# dependencies:
+#   flutter:
+#     sdk: flutter
+#   http: ^1.1.0
+#   uuid: ^4.2.1
+#   # ... your other dependencies
+# 
+# dev_dependencies:
+#   flutter_test:
+#     sdk: flutter
+#   flutter_lints: ^3.0.0
+# 
+# flutter:
+#   uses-material-design: true

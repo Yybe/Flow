@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../providers/habit_provider.dart';
+import '../utils/sample_data.dart';
+import 'habit_calendar_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -12,46 +16,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
   bool _hibernationMode = false;
   String _selectedTheme = 'Cozy';
   
-  // Mock user data
-  final Map<String, dynamic> _userProfile = {
-    'name': 'Alex Johnson',
-    'status': 'Student',
-    'hobbies': ['Reading', 'Coding', 'Photography'],
-  };
+
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.beige,
+      backgroundColor: AppColors.lightBeige,
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: const Text(
+          'Profile',
+          style: TextStyle(
+            color: AppColors.darkGray,
+            fontWeight: FontWeight.w600,
+            fontSize: 20,
+          ),
+        ),
         backgroundColor: AppColors.lightBeige,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 100),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile card
-            _ProfileCard(
-              name: _userProfile['name'],
-              status: _userProfile['status'],
-              hobbies: List<String>.from(_userProfile['hobbies']),
-            ),
-            
-            const SizedBox(height: 24),
-            
-            // Calendars section
+
+            // Progress Tracking section
             Text(
               'Progress Tracking',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
+                color: AppColors.darkGray,
+                fontSize: 18,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Habit calendar
             _CalendarCard(
               title: 'Habit Calendar',
@@ -59,9 +61,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.check_circle_outline,
               color: AppColors.teal,
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             // Mood calendar
             _CalendarCard(
               title: 'Mood Calendar',
@@ -69,19 +71,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.mood,
               color: AppColors.coral,
             ),
-            
+
             const SizedBox(height: 24),
-            
+
             // Settings section
             Text(
               'Settings',
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
+                fontWeight: FontWeight.w700,
+                color: AppColors.darkGray,
+                fontSize: 18,
               ),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Settings cards
             _SettingsCard(
               title: 'Theme',
@@ -89,9 +93,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.palette_outlined,
               onTap: _showThemeSelector,
             ),
-            
+
             const SizedBox(height: 12),
-            
+
             _SettingsCard(
               title: 'Hibernation Mode',
               subtitle: _hibernationMode ? 'Active - All tracking paused' : 'Inactive',
@@ -104,6 +108,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   });
                 },
                 activeColor: AppColors.coral,
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
             ),
             
@@ -126,6 +131,25 @@ class _ProfileScreenState extends State<ProfileScreen> {
               icon: Icons.person_outline,
               onTap: () {
                 // TODO: Navigate to profile edit
+              },
+            ),
+
+            const SizedBox(height: 12),
+
+            // Debug section - Add sample data
+            _SettingsCard(
+              title: 'Add Sample Habits',
+              subtitle: 'For testing the calendar view',
+              icon: Icons.science,
+              onTap: () async {
+                final habitProvider = Provider.of<HabitProvider>(context, listen: false);
+                final messenger = ScaffoldMessenger.of(context);
+                await SampleDataHelper.addSampleHabits(habitProvider);
+                if (mounted) {
+                  messenger.showSnackBar(
+                    const SnackBar(content: Text('Sample habits added!')),
+                  );
+                }
               },
             ),
           ],
@@ -161,77 +185,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 }
 
-class _ProfileCard extends StatelessWidget {
-  final String name;
-  final String status;
-  final List<String> hobbies;
 
-  const _ProfileCard({
-    required this.name,
-    required this.status,
-    required this.hobbies,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Avatar
-            CircleAvatar(
-              radius: 40,
-              backgroundColor: AppColors.teal,
-              child: Text(
-                name.split(' ').map((n) => n[0]).join(),
-                style: const TextStyle(
-                  color: AppColors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // Name
-            Text(
-              name,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 4),
-            
-            // Status
-            Text(
-              status,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                color: AppColors.gray,
-              ),
-            ),
-            
-            const SizedBox(height: 12),
-            
-            // Hobbies
-            Wrap(
-              spacing: 8,
-              children: hobbies.map((hobby) {
-                return Chip(
-                  label: Text(hobby),
-                  backgroundColor: AppColors.lightBeige,
-                  labelStyle: Theme.of(context).textTheme.bodySmall,
-                );
-              }).toList(),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class _CalendarCard extends StatelessWidget {
   final String title;
@@ -248,15 +202,81 @@ class _CalendarCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon, color: color, size: 28),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
-        onTap: () {
-          // TODO: Navigate to calendar view
-        },
+    return GestureDetector(
+      onTap: () {
+        if (title == 'Habit Calendar') {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const HabitCalendarScreen(),
+            ),
+          );
+        }
+        // TODO: Navigate to mood calendar view for mood calendar
+      },
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.08),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: color,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkGray,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.gray,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Icon(
+              Icons.arrow_forward_ios,
+              size: 16,
+              color: AppColors.gray,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -279,15 +299,73 @@ class _SettingsCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: ListTile(
-        leading: Icon(icon, color: AppColors.gray, size: 24),
-        title: Text(title),
-        subtitle: Text(subtitle),
-        trailing: trailing ?? (onTap != null 
-            ? const Icon(Icons.arrow_forward_ios, size: 16) 
-            : null),
-        onTap: onTap,
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+          border: Border.all(
+            color: Colors.grey.withValues(alpha: 0.08),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.lightGray.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.darkGray,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.darkGray,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppColors.gray,
+                      fontWeight: FontWeight.w400,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            trailing ?? (onTap != null
+                ? Icon(
+                    Icons.arrow_forward_ios,
+                    size: 16,
+                    color: AppColors.gray,
+                  )
+                : const SizedBox.shrink()),
+          ],
+        ),
       ),
     );
   }
